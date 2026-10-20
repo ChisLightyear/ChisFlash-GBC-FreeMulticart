@@ -22,7 +22,7 @@ Before making a multicart, prepare:
 
 This section uses the Client with a Beggar programmer. For gbflash or another programmer, go directly to section 4. Section 3 is an optional workflow that retains existing games, not this fresh-multicart setup.
 
-The GB full-erase action in this section requires Client **2.034 or a later version that includes this feature**. Client 2.031 does not include it. Offline regression checks and builds pass; physical-cartridge validation is still pending. Download the companion tools from [Tools Releases](https://github.com/moribaka/ChisFlash-Tools-Exp/releases/tag/v2.046-r15-0.92.5).
+The GB full-erase action in this section requires Client **2.034 or a later version that includes this feature**. Client 2.031 does not include it. Offline regression checks and builds pass; physical-cartridge validation is still pending. Download the companion tools from [Tools Releases](https://github.com/ChisLightyear/ChisFlash-Tools-Exp/releases/tag/v2.046-r15-0.92.5).
 
 1. Select the port and `GB` mode, then click `Analyze Cart` to detect NOR and confirm 32 MiB capacity.
 2. Select `Free multicart · MAX/MBCX 32M` under `Flash Cart`, then analyze the cartridge again. Older versions call this `Beggar MAX (SRAM)`; the screenshots below show the older interface. Select the free multicart mode appropriate to your version.
