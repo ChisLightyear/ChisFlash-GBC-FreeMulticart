@@ -4,7 +4,7 @@
 
 **FAQ / 常见问题:** [English](FAQ.en.md) | [简体中文](FAQ.zh-CN.md)
 
-**Download / 下载:** [GitHub Releases](https://github.com/ChisLightyear/ChisFlash-GBC-FreeMulticart/releases)
+**Download / 下载:** [v1.01 POF 固件](https://github.com/ChisLightyear/ChisFlash-GBC-FreeMulticart/releases/download/preview-2026-10-20/ChisFlash-Free-Multicart-v1.01.pof) · [GitHub Releases](https://github.com/ChisLightyear/ChisFlash-GBC-FreeMulticart/releases)
 
 ## English
 
@@ -28,7 +28,7 @@ Menu kernels alone are not complete multicart images. Follow the tutorial to cre
 
 Screenshots use synthetic ROMs and simulated card data; menu images are software previews. No physical device was programmed.
 
-Desktop tools: [ChisFlash-Tools-Exp](https://github.com/moribaka/ChisFlash-Tools-Exp), currently a private repository requiring access. Obtain the companion tools from the maintainer. The tutorial's GB full-erase action requires Client 2.034 or a later build that includes this feature; Client 2.031 does not include it. Offline checks and builds pass; physical-cartridge validation is pending. Tools and games are not bundled here.
+Desktop tools: [ChisFlash-Tools-Exp](https://github.com/moribaka/ChisFlash-Tools-Exp), publicly available with compiled Client and Builder downloads on its Releases page. The tutorial's GB full-erase action requires Client 2.034 or a later build that includes this feature; Client 2.031 does not include it. Offline checks and builds pass; physical-cartridge validation is pending. Tools and games are not bundled here.
 
 Verify artifacts with [SHA256SUMS.txt](SHA256SUMS.txt). See [LICENSES](LICENSES/README.md) for third-party notices and the remaining project-licence decision.
 
@@ -54,6 +54,6 @@ Verify artifacts with [SHA256SUMS.txt](SHA256SUMS.txt). See [LICENSES](LICENSES/
 
 截图使用假 ROM 和模拟卡带数据，菜单画面为软件预览，没有对真实设备烧录。
 
-配套工具：[ChisFlash-Tools-Exp](https://github.com/moribaka/ChisFlash-Tools-Exp)，目前为私有仓库，需要访问权限；请向维护者获取配套工具。教程中的 GB 全片擦除入口需上位机 2.034 或后续包含此功能的版本，2.031 不具备；已通过离线回归与编译，尚待实卡验证。本包不附带工具或游戏。
+配套工具：[ChisFlash-Tools-Exp](https://github.com/moribaka/ChisFlash-Tools-Exp)，已公开，Releases 页面提供编译好的上位机和合卡器。教程中的 GB 全片擦除入口需上位机 2.034 或后续包含此功能的版本，2.031 不具备；已通过离线回归与编译，尚待实卡验证。本包不附带工具或游戏。
 
 校验见 [SHA256SUMS.txt](SHA256SUMS.txt)，第三方署名与待确认的项目许可见 [LICENSES](LICENSES/README.md)。
