@@ -44,6 +44,12 @@ module ChisFlash(
 	wire [3:0]  mbc_idx = (game_sel_en) ? get_mbc_type : TYPE_MBC5_MENU;  // MBC类型索引（进入程序时使用get_mbc_type，菜单时使用4'd7）
 
 	// MBC模块信号定义
+	wire [18:0] mbc0_out;   // MBC1模块输出
+	wire [18:0] mbc1_out;   // MBC1模块输出
+	wire [18:0] mbc5menu_out;   // MBC5模块输出
+	wire [18:0] mbc5_out;   // MBC5模块输出
+	wire [18:0] mbc5r_out;  // MBC5r模块输出（带振动）
+	reg menu_mode = 1'b0;  // RAM bank寄存器，bit6用于进入菜单模式
 	wire [18:0] mbc_out;       // MBC模块输出的总信号
 	wire [24:14] mbc_rom_bank;    // MBC模块输出的ROM bank地址
 	wire [18:13] mbc_ram_a;    // MBC模块输出的RAM bank地址
@@ -63,15 +69,12 @@ module ChisFlash(
 	assign mbc_rom_bank[24:14] = mbc_out[10:0];   // 提取ROM bank地址
 	assign mbc_ram_a[18:13] = mbc_out[16:11];   // 提取RAM bank地址
 	assign nROM_CS = mbc_out[17];               // 提取ROM片选信号
-	assign nRAM_CS = mbc_out[18];               // 提取RAM片选信号
 	//wire dout_en =    mbc_out[19];                 // 提取数据输出使能信号
 	//assign GB_D[7:0] = dout_en ? mbc_out[27:20] : 8'hzz;  // 三态数据输出
 	
 	// MBC模块实例化
-	wire [18:0] mbc0_out;   // MBC1模块输出
 	MBC0 mbc0_unit(GB_A[15:0],GB_D[7:0],GB_CS,GB_CLK,nGB_WR,GB_RD,mbc0_out);  // MBC1控制器实例
 
-	wire [18:0] mbc1_out;   // MBC1模块输出
 	MBC1 mbc1_unit(GB_A[15:0],GB_D[7:0],GB_CS,GB_CLK,nGB_WR,GB_RD,mbc1_out);  // MBC1控制器实例
 	
 	//wire [18:0] mbc2_out;   // MBC2模块输出
@@ -81,13 +84,10 @@ module ChisFlash(
 	//MBC3 mbc3_unit(osc_sig,GB_A[15:0],GB_D[7:0],GB_CS,GB_CLK,nGB_WR,GB_RD,mbc3_out,
 	//sck,mosi,cs,miso,rtc_clk);  // MBC3控制器实例（带RTC功能）
 	
-	wire [18:0] mbc5menu_out;   // MBC5模块输出
 	MBC5menu mbc5menu_unit(GB_A[15:0],GB_D[7:0],GB_CS,GB_CLK,nGB_WR,GB_RD,mbc5menu_out,menu_mode);  // MBC5控制器实例
 	
-	wire [18:0] mbc5_out;   // MBC5模块输出
 	MBC5 mbc5_unit(GB_A[15:0],GB_D[7:0],GB_CS,GB_CLK,nGB_WR,GB_RD,mbc5_out);  // MBC5控制器实例
 
-	wire [18:0] mbc5r_out;  // MBC5r模块输出（带振动）
 	MBC5r mbc5r_unit(GB_A[15:0],GB_D[7:0],GB_CS,GB_CLK,nGB_WR,GB_RD,mbc5r_out,motor);  // MBC5r控制器实例（带振动功能）
 
 //******************************************合卡逻辑***********************************************
@@ -99,28 +99,19 @@ module ChisFlash(
 		rom_start_bank[10:0] + mbc_rom_bank[24:14]: // 合卡模式：输出偏移后的bank
 		mbc_rom_bank[24:14];     // 单卡模式：输出原始bank
 
-	// RAM地址映射
-	// RAM bank 映射表（每个程序最多16个RAM bank）
-	reg [5:0] ram_map_table [0:7]; // 可配置：0~63号RAM bank
-	reg [3:0] ram_map_index;        // 当前已接收的RAM bank数量（0~8）
-	reg ram_load_active = 1'b0;      // 是否正在接收RAM bank列表
-	reg use_fixed_ram = 1'b0;       // 固定映射模式标志
-	wire [3:0] mbc_ram_bank_idx = mbc_ram_a[16:13];
-	wire [2:0] mbc_ram_map_slot = mbc_ram_bank_idx[2:0];
-
-	// 固定模式下，将 RAM bank 严格限制在 60~63
-	wire [5:0] fixed_ram_bank = (mbc_ram_bank_idx < 4'd4) ?
-								(ram_start_bank + {4'b0000, mbc_ram_bank_idx[1:0]}) :
-								(ram_start_bank + 6'd3);
-
-	assign RAM_A[18:13] = 
-		(game_sel_en && use_fixed_ram) ? fixed_ram_bank :
-		(game_sel_en && !use_fixed_ram && ram_map_index > 0) ? (
-			(mbc_ram_bank_idx < ram_map_index) ? ram_map_table[mbc_ram_map_slot] : ram_map_table[ram_map_index-1]
-		) :
-		mbc_ram_a[18:13];
-
-
+	// 菜单直接访问物理 SRAM；游戏仅能访问分配给它的连续区间。
+	reg [4:0] ram_bank_count = 5'd0;
+	reg ram_load_active = 1'b0;
+	reg ram_map_invalid = 1'b0;
+	wire [3:0] logical_ram_bank = mbc_ram_a[16:13];
+	wire [6:0] next_physical_bank = {1'b0, ram_start_bank} + {2'b00, ram_bank_count};
+	// 与原固件一致，游戏选择超过区间的 bank 时停在本游戏最后一个 bank。
+	wire [3:0] game_ram_offset = ({1'b0, logical_ram_bank} < ram_bank_count) ?
+		logical_ram_bank : ram_bank_count[3:0] - 4'd1;
+	assign RAM_A = game_sel_en ? ram_start_bank + {2'b00, game_ram_offset} : mbc_ram_a;
+	// 菜单命令占用 A000/B000；发送命令时不能同时写到 SRAM。
+	assign nRAM_CS = mbc_out[18] || menu_mode ||
+		(game_sel_en && (rom_bank_lock != 3'd4 || ram_map_invalid || ram_bank_count == 0));
 
 	// 合卡选择逻辑
 	// 仅在菜单模式下（menu_mode == 1）响应命令
@@ -151,36 +142,35 @@ module ChisFlash(
 						rom_bank_lock <= 3'b011;	
 					end
 					else if(rom_bank_lock == 3'b011) begin
-						if (GB_D[7:0] == 8'hFF && !ram_load_active) begin
-							// 新协议下带RAM程序必须通过0xFE下发RAM map；
-							// 未下发map的旧路径只能进入共享区，禁止落入独立保存区。
-							use_fixed_ram <= 1'b1;
-							ram_start_bank <= 6'd60;
-							rom_bank_lock <= 3'b100;
-						end
-						else if (GB_D[7:0] == 8'hFE && !ram_load_active) begin
-							// 收到0xFE：启用灵活映射模式（继续接收后续bank IDs）
-							use_fixed_ram <= 1'b0;
-							ram_load_active <= 1'b1;  // 启动接收序列
-							ram_map_index <= 4'd0;    // 重置索引
-						end
-						else if (ram_load_active) begin
-							// 接收bank ID
-							if (GB_D[7:0] == 8'hFF) begin
-								// 在灵活模式下收到0xFF：结束接收
-								ram_load_active <= 1'b0;      // 停止接收
-								rom_bank_lock <= 3'b100;      // 进入就绪状态
-							end else if (ram_map_index < 4'd8) begin
-								ram_map_table[ram_map_index] <= GB_D[5:0];
-								ram_map_index <= ram_map_index + 1'b1;
+						if (GB_D == 8'hFF) begin
+							if (!ram_load_active) begin
+								// 沿用无显式映射时的共享区 60～63。
+								ram_start_bank <= 6'd60;
+								ram_bank_count <= 5'd4;
 							end
+							ram_load_active <= 1'b0;
+							rom_bank_lock <= 3'd4;
+						end else if (!ram_load_active && GB_D == 8'hFE) begin
+							ram_load_active <= 1'b1;
+						end else if (ram_load_active) begin
+							// 以七位计算下一物理地址，避免 63 后回绕到 0。
+							if (GB_D[7:6] != 0 || ram_bank_count >= 5'd16 ||
+								(ram_bank_count != 0 && ({1'b0, GB_D[5:0]} != next_physical_bank ||
+								(ram_start_bank < 6'd60 && GB_D[5:0] >= 6'd60)))) begin
+								ram_map_invalid <= 1'b1;
+							end else begin
+								if (ram_bank_count == 0)
+									ram_start_bank <= GB_D[5:0];
+								ram_bank_count <= ram_bank_count + 1'b1;
+							end
+						end else begin
+							ram_map_invalid <= 1'b1;
 						end
 					end
 				end
 			endcase
 		end
 	end
-	reg menu_mode = 1'b0;  // RAM bank寄存器，bit6用于进入菜单模式
 
 	// RAM bank寄存器控制逻辑
 	// 仅在非合卡模式下响应GB_D[6]设置，合卡模式下强制置0
